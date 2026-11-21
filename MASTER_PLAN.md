@@ -146,11 +146,28 @@ Where default weights are $w_1 = 0.40$, $w_2 = 0.35$, $w_3 = 0.25$. An $\text{FR
 - **JUnit XML Reporter (`junit.xml`)**: Test suite XML report compatible with GitHub Actions, GitLab CI, and Jenkins.
 - **GitHub Step Summary (`github.go`)**: Formatted Markdown tables output directly to `$GITHUB_STEP_SUMMARY`.
 
-### 4.5 Embedded Web Cockpit (`pkg/cockpit`)
+### 4.5 Cost and Token Variance Profiler (`pkg/cost`)
+- Computes token variance ($\sigma^2_{\text{tokens}}$), P95 token consumption, and cost volatility ratio across runs.
+- Identifies runaway executions where an agent gets trapped in excessive tool loops.
+- Maps model cost rates per 1M prompt and completion tokens.
+
+### 4.6 Trajectory Diff Engine (`pkg/diff`)
+- Aligns two runs step-by-step and classifies alignment: `MATCH`, `TOOL_SUBSTITUTION`, `ARG_DIFF`, `INSERTION`, `DELETION`.
+- Pinpoints the exact first divergence step and displays key-level JSON argument diffs.
+
+### 4.7 Automated Prompt Mitigation Synthesizer (`pkg/suggest`)
+- Inspects decision bifurcation points ($H(s) \ge 0.5$) and argument drift.
+- Synthesizes unambiguous prompt directives and system prompt patches in Markdown format.
+
+### 4.8 Declarative Config & Parameter Sweep Matrix (`pkg/config`)
+- Supports `flakeprobe.yaml` for defining target configurations, suite parameters, and sweep matrices.
+- Discovers the phase transition temperature where an agent begins failing the stability gate.
+
+### 4.9 Embedded Web Cockpit (`pkg/cockpit`)
 - Zero-dependency embedded web server served on `http://127.0.0.1:8484` using Go's `embed` package.
-- Interactive SVG DAG Visualizer: pan, zoom, click to inspect step arguments, entropy heatmap coloring.
-- Side-by-side run inspector and trajectory diff.
-- Real-time Server-Sent Events (SSE) streaming updates during active test runs.
+- Interactive SVG DAG visualizer: pan, zoom, click to inspect step arguments, entropy heatmap coloring.
+- Side-by-side run comparison and live stream support via Server-Sent Events (SSE).
+- Web-triggered benchmark execution with real-time graph updates.
 
 ---
 

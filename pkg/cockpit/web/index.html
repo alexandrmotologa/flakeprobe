@@ -13,6 +13,7 @@
         <span>flakeprobe</span>
         <span class="brand-badge">COCKPIT :8484</span>
       </div>
+      <button class="action-btn" onclick="openRunModal()">+ Run Benchmark</button>
     </div>
     <div class="header-status">
       <span id="target-desc" style="color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px;"></span>
@@ -40,8 +41,8 @@
           <div id="metric-success" class="metric-val">-</div>
         </div>
         <div class="metric-card">
-          <div class="metric-label">Total Runs</div>
-          <div id="metric-runs" class="metric-val">-</div>
+          <div class="metric-label">Cost Jitter Ratio</div>
+          <div id="metric-cost-jitter" class="metric-val">-</div>
         </div>
       </div>
 
@@ -52,11 +53,14 @@
 
     <aside class="sidebar-panel">
       <div class="sidebar-tabs">
-        <button class="tab-btn active" onclick="switchTab('inspector')">Node Inspector</button>
+        <button class="tab-btn active" onclick="switchTab('inspector')">Inspector</button>
         <button class="tab-btn" onclick="switchTab('bifurcations')">Bifurcations</button>
+        <button class="tab-btn" onclick="switchTab('diff')">Diff</button>
+        <button class="tab-btn" onclick="switchTab('mitigations')">Mitigations</button>
         <button class="tab-btn" onclick="switchTab('runs')">Runs</button>
       </div>
 
+      <!-- Inspector Tab -->
       <div id="tab-inspector" class="sidebar-content">
         <div class="section-title">Selected State Node</div>
         <div id="node-details" class="node-inspector-drawer">
@@ -64,6 +68,7 @@
         </div>
       </div>
 
+      <!-- Bifurcations Tab -->
       <div id="tab-bifurcations" class="sidebar-content" style="display: none;">
         <div class="section-title">Branching Hotspots</div>
         <div id="bifurcation-list">
@@ -71,6 +76,34 @@
         </div>
       </div>
 
+      <!-- Trajectory Diff Tab -->
+      <div id="tab-diff" class="sidebar-content" style="display: none;">
+        <div class="section-title">Side-by-Side Trajectory Diff</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+          <div>
+            <label style="font-size: 10px; color: var(--text-muted);">RUN A</label>
+            <select id="diff-select-a" style="width: 100%; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); padding: 4px; border-radius: 4px; font-family: var(--font-mono);"></select>
+          </div>
+          <div>
+            <label style="font-size: 10px; color: var(--text-muted);">RUN B</label>
+            <select id="diff-select-b" style="width: 100%; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); padding: 4px; border-radius: 4px; font-family: var(--font-mono);"></select>
+          </div>
+        </div>
+        <button class="action-btn" style="width: 100%; margin-bottom: 12px;" onclick="triggerRunDiff()">Compare Trajectories</button>
+        <div id="diff-results-container">
+          <p style="color: var(--text-muted); font-size: 12px;">Select two runs above to inspect tool substitutions and argument drift.</p>
+        </div>
+      </div>
+
+      <!-- Mitigations Tab -->
+      <div id="tab-mitigations" class="sidebar-content" style="display: none;">
+        <div class="section-title">Automated Prompt Mitigations</div>
+        <div id="mitigations-container">
+          <p style="color: var(--text-muted);">Loading mitigations...</p>
+        </div>
+      </div>
+
+      <!-- Runs Tab -->
       <div id="tab-runs" class="sidebar-content" style="display: none;">
         <div class="section-title">Trajectory Runs</div>
         <div id="runs-list">
@@ -79,6 +112,34 @@
       </div>
     </aside>
   </main>
+
+  <!-- Run Modal -->
+  <div id="run-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span style="font-weight: 700; font-size: 15px;">Launch Flakiness Benchmark</span>
+        <button class="modal-close" onclick="closeRunModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label>Target Archetype</label>
+        <select id="modal-archetype" style="width: 100%; margin-bottom: 12px; padding: 6px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px;">
+          <option value="bifurcated">Bifurcated (50/50 Decision Fork)</option>
+          <option value="deterministic">Deterministic (Stable Reference)</option>
+          <option value="low-jitter">Low Jitter (Argument Drift)</option>
+          <option value="hallucination-loop">Hallucination Loop (Recursive Retry)</option>
+          <option value="flaky-failure">Flaky Failure (Fallback Branch)</option>
+        </select>
+
+        <label>Iterations (N)</label>
+        <input id="modal-runs" type="number" value="15" style="width: 100%; margin-bottom: 12px; padding: 6px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px;" />
+
+        <label>Max Allowed FRI Threshold</label>
+        <input id="modal-max-fri" type="number" step="0.05" value="0.20" style="width: 100%; margin-bottom: 16px; padding: 6px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px;" />
+
+        <button class="action-btn" style="width: 100%; padding: 8px;" onclick="submitRunBenchmark()">Execute Benchmark</button>
+      </div>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>

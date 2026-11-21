@@ -136,13 +136,31 @@ flakeprobe replay \
   --strict
 ```
 
-### 5. Launch Cockpit on Existing Report
+### 5. Compare Trajectories Side-by-Side
+
+```bash
+flakeprobe diff --report ./reports/bifurcated.json --run1 run-001 --run2 run-004
+```
+
+### 6. Synthesize Automated Prompt Mitigations
+
+```bash
+flakeprobe suggest --report ./reports/bifurcated.json
+```
+
+### 7. Parameter Sweep Across Temperatures
+
+```bash
+flakeprobe sweep --config flakeprobe.yaml
+```
+
+### 8. Launch Cockpit on Existing Report
 
 ```bash
 flakeprobe cockpit --report ./reports/bifurcated.json --port 8484
 ```
 
-Then open `http://127.0.0.1:8484` in your browser.
+Then open `http://127.0.0.1:8484` in your browser. Users can compare runs, view prompt patches, and launch new benchmarks directly from the web interface.
 
 ---
 
@@ -176,10 +194,13 @@ Default weights: $w_1 = 0.40$ (trajectory distance), $w_2 = 0.35$ (outcome varia
 
 | Command | Key Flags | Description |
 | :--- | :--- | :--- |
-| `test` | `--endpoint`, `--prompt`, `--runs`, `--max-fri`, `--cockpit` | Runs N trials, computes entropy metrics, evaluates pass/fail gate |
+| `test` | `--endpoint`, `--prompt`, `--runs`, `--max-fri`, `--suggest`, `--cockpit` | Runs N trials, computes entropy metrics, evaluates pass/fail gate |
+| `diff` | `--report`, `--run1`, `--run2` | Formats step-by-step trajectory diff highlighting substitutions and argument jitter |
+| `suggest` | `--report` | Generates actionable prompt disambiguation directives for bifurcation nodes |
+| `sweep` | `--config` | Executes parameter sweep across temperatures and prompts to find stability boundaries |
 | `record` | `--endpoint`, `--prompt`, `--output`, `--runs` | Profiles golden trajectory and outputs `.flakerec.json` |
 | `replay` | `--fixture`, `--port`, `--strict` | Hosts deterministic mock HTTP server from fixture |
-| `cockpit` | `--report`, `--port` | Serves embedded web visualization dashboard |
+| `cockpit` | `--report`, `--port` | Serves embedded web visualization dashboard with live execution triggers |
 | `mock-agent` | `--port`, `--archetype` | Runs OpenAI-compatible synthetic mock server |
 | `version` | - | Displays binary version information |
 

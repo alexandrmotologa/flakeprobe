@@ -38,7 +38,12 @@ function renderAll() {
   document.getElementById('metric-entropy').textContent = (analysis.entropy_profile.max_node_entropy || 0).toFixed(3) + ' bits';
   document.getElementById('metric-distance').textContent = (analysis.distance_profile.mean_normalized_distance || 0).toFixed(4);
   document.getElementById('metric-success').textContent = ((analysis.success_rate || 0) * 100).toFixed(1) + '%';
-  document.getElementById('metric-runs').textContent = (analysis.total_runs || 0).toString();
+  
+  if (analysis.cost_profile) {
+    document.getElementById('metric-cost-jitter').textContent = (analysis.cost_profile.cost_jitter_ratio || 1.0).toFixed(2) + 'x';
+  } else {
+    document.getElementById('metric-cost-jitter').textContent = '1.00x';
+  }
 
   // Bifurcations
   renderBifurcations(analysis.entropy_profile.bifurcation_nodes || []);
@@ -46,9 +51,177 @@ function renderAll() {
   // Runs
   renderRuns(reportData.runs || []);
 
+  // Populate Diff Selectors
+  populateDiffSelectors(reportData.runs || []);
+
+  // Mitigations
+  loadMitigations();
+
   // DAG
   if (analysis.state_dag) {
     renderDAG(analysis.state_dag, analysis.entropy_profile);
+  }
+}
+
+function populateDiffSelectors(runs) {
+  const selA = document.getElementById('diff-select-a');
+  const selB = document.getElementById('diff-select-b');
+  if (!selA || !selB) return;
+
+  selA.innerHTML = '';
+  selB.innerHTML = '';
+
+  runs.forEach((r, idx) => {
+    const optA = document.createElement('option');
+    optA.value = r.id;
+    optA.textContent = `${r.id} (${r.success ? 'Pass' : 'Fail'}, ${r.steps ? r.steps.length : 0} steps)`;
+    selA.appendChild(optA);
+
+    const optB = document.createElement('option');
+    optB.value = r.id;
+    optB.textContent = `${r.id} (${r.success ? 'Pass' : 'Fail'}, ${r.steps ? r.steps.length : 0} steps)`;
+    if (idx === 1 || (idx === runs.length - 1 && runs.length > 1)) {
+      optB.selected = true;
+    }
+    selB.appendChild(optB);
+  });
+}
+
+async function triggerRunDiff() {
+  const runA = document.getElementById('diff-select-a').value;
+  const runB = document.getElementById('diff-select-b').value;
+  const container = document.getElementById('diff-results-container');
+  if (!runA || !runB) return;
+
+  container.innerHTML = '<p style="color: var(--text-muted);">Comparing trajectories...</p>';
+  try {
+    const res = await fetch(`/api/diff?runA=${encodeURIComponent(runA)}&runB=${encodeURIComponent(runB)}`);
+    if (!res.ok) throw new Error('Failed to fetch diff');
+    const diff = await res.json();
+
+    let html = `
+      <div style="margin-bottom: 12px; font-size: 11px; padding: 8px; background: var(--bg-primary); border-radius: 4px; border: 1px solid var(--border-color);">
+        <div style="font-weight: 700; color: ${diff.are_identical ? 'var(--accent-green)' : 'var(--accent-red)'}; margin-bottom: 4px;">
+          ${diff.are_identical ? 'IDENTICAL PATHS' : `DIVERGES AT STEP ${diff.divergence_step}`}
+        </div>
+        <div style="color: var(--text-secondary); font-family: var(--font-mono);">
+          Token Delta: ${diff.token_delta > 0 ? '+' : ''}${diff.token_delta} | Duration: ${diff.duration_delta_ms}ms
+        </div>
+      </div>
+    `;
+
+    (diff.steps || []).forEach(s => {
+      let chipClass = 'diff-match';
+      if (s.status === 'TOOL_SUBSTITUTION' || s.status === 'INSERTION' || s.status === 'DELETION') {
+        chipClass = 'diff-sub';
+      } else if (s.status === 'ARG_DIFF') {
+        chipClass = 'diff-arg';
+      }
+
+      const labelA = s.step_a ? (s.step_a.tool_name || s.step_a.action_type) : '<empty>';
+      const labelB = s.step_b ? (s.step_b.tool_name || s.step_b.action_type) : '<empty>';
+
+      html += `
+        <div class="diff-step-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <span style="font-family: var(--font-mono); font-weight: 700;">Step ${s.index}</span>
+            <span class="diff-chip ${chipClass}">${s.status}</span>
+          </div>
+          <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary);">
+            <div>${diff.run_a_id}: <span style="color: var(--text-primary); font-weight: 600;">${escapeHtml(labelA)}</span></div>
+            <div>${diff.run_b_id}: <span style="color: var(--text-primary); font-weight: 600;">${escapeHtml(labelB)}</span></div>
+          </div>
+          ${(s.arg_diffs || []).map(ad => `
+            <div style="margin-top: 4px; padding: 4px; background: var(--bg-tertiary); border-radius: 3px; font-size: 10px; font-family: var(--font-mono); color: var(--accent-yellow);">
+              ${escapeHtml(ad.field)}: [${escapeHtml(ad.val_a)}] &ne; [${escapeHtml(ad.val_b)}]
+            </div>
+          `).join('')}
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+  } catch (err) {
+    container.innerHTML = `<p style="color: var(--accent-red); font-size: 12px;">Diff error: ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+async function loadMitigations() {
+  const container = document.getElementById('mitigations-container');
+  if (!container) return;
+
+  try {
+    const res = await fetch('/api/suggest');
+    if (!res.ok) throw new Error('Failed to load mitigations');
+    const data = await res.json();
+
+    if (!data.directives || data.directives.length === 0) {
+      container.innerHTML = '<p style="color: var(--accent-green);">No mitigations required. Agent decision boundaries are stable.</p>';
+      return;
+    }
+
+    let html = '';
+    data.directives.forEach((d, idx) => {
+      html += `
+        <div class="mitigation-card">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span style="font-weight: 700; font-size: 12px;">[${idx + 1}] Step ${d.step_index}</span>
+            <span class="diff-chip ${d.priority === 'CRITICAL' ? 'diff-sub' : 'diff-arg'}">${d.priority}</span>
+          </div>
+          <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 6px;">
+            ${escapeHtml(d.diagnostic_issue)}
+          </div>
+          <div style="background: var(--bg-tertiary); padding: 6px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 10px; color: var(--accent-green);">
+            ${escapeHtml(d.suggested_directive)}
+          </div>
+        </div>
+      `;
+    });
+
+    html += `
+      <div class="section-title" style="margin-top: 16px;">System Prompt Patch</div>
+      <pre>${escapeHtml(data.system_prompt_patch_markdown || '')}</pre>
+    `;
+
+    container.innerHTML = html;
+  } catch (err) {
+    container.innerHTML = `<p style="color: var(--text-muted); font-size: 12px;">Mitigations unavailable.</p>`;
+  }
+}
+
+function openRunModal() {
+  document.getElementById('run-modal').style.display = 'flex';
+}
+
+function closeRunModal() {
+  document.getElementById('run-modal').style.display = 'none';
+}
+
+async function submitRunBenchmark() {
+  const archetype = document.getElementById('modal-archetype').value;
+  const runs = parseInt(document.getElementById('modal-runs').value, 10) || 10;
+  const maxFRI = parseFloat(document.getElementById('modal-max-fri').value) || 0.20;
+
+  closeRunModal();
+  document.getElementById('status-badge').textContent = 'BENCHMARK RUNNING';
+  document.getElementById('status-badge').className = 'status-badge status-warn';
+
+  try {
+    const res = await fetch('/api/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        target_type: 'mock',
+        mock_archetype: archetype,
+        runs: runs,
+        concurrency: 4,
+        max_fri: maxFRI,
+        prompt: `Benchmark run (${archetype})`,
+      }),
+    });
+    if (!res.ok) throw new Error('Benchmark start failed');
+  } catch (err) {
+    alert('Failed to launch benchmark: ' + err.message);
   }
 }
 
@@ -114,7 +287,6 @@ function renderDAG(dag, entropyProfile) {
   const nodes = Object.values(dag.nodes);
   if (nodes.length === 0) return;
 
-  // Group nodes by step index
   const stepGroups = {};
   nodes.forEach(n => {
     const s = n.step_index;
@@ -147,7 +319,6 @@ function renderDAG(dag, entropyProfile) {
   const totalWidth = startX + sortedSteps.length * stepSpacing + 100;
   svg.setAttribute('viewBox', `0 0 ${Math.max(totalWidth, 900)} ${Math.max(maxY + 80, 500)}`);
 
-  // Defs for arrows
   const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
   defs.innerHTML = `
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -159,7 +330,6 @@ function renderDAG(dag, entropyProfile) {
   `;
   svg.appendChild(defs);
 
-  // Draw Edges
   (dag.edges || []).forEach(edge => {
     const srcPos = nodePositions[edge.source];
     const tgtPos = nodePositions[edge.target];
@@ -185,7 +355,6 @@ function renderDAG(dag, entropyProfile) {
     path.dataset.target = edge.target;
     svg.appendChild(path);
 
-    // Label on edge if probability < 1.0
     if (edge.probability < 0.99) {
       const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       text.setAttribute('x', ((x1 + x2) / 2).toString());
@@ -199,7 +368,6 @@ function renderDAG(dag, entropyProfile) {
     }
   });
 
-  // Draw Nodes
   nodes.forEach(node => {
     const pos = nodePositions[node.id];
     if (!pos) return;
@@ -306,18 +474,21 @@ function highlightRun(runId) {
 }
 
 function switchTab(tabName) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.sidebar-content').forEach(c => c.style.display = 'none');
+  const tabs = ['inspector', 'bifurcations', 'diff', 'mitigations', 'runs'];
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    if (tabs[i] === tabName) {
+      b.classList.add('active');
+    } else {
+      b.classList.remove('active');
+    }
+  });
 
-  if (tabName === 'inspector') {
-    document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
-    document.getElementById('tab-inspector').style.display = 'block';
-  } else if (tabName === 'bifurcations') {
-    document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
-    document.getElementById('tab-bifurcations').style.display = 'block';
-  } else if (tabName === 'runs') {
-    document.querySelector('.tab-btn:nth-child(3)').classList.add('active');
-    document.getElementById('tab-runs').style.display = 'block';
+  document.querySelectorAll('.sidebar-content').forEach(c => c.style.display = 'none');
+  const target = document.getElementById(`tab-${tabName}`);
+  if (target) target.style.display = 'block';
+
+  if (tabName === 'diff') {
+    triggerRunDiff();
   }
 }
 

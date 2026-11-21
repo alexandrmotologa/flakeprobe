@@ -74,6 +74,14 @@ func RenderTerminal(w io.Writer, analysis *entropy.FlakinessAnalysis, runs []run
 	fmt.Fprintf(w, "%-32s %-16.4f %-16s\n", "Max Node Entropy H(s)", analysis.EntropyProfile.MaxNodeEntropy, entEval)
 
 	fmt.Fprintf(w, "%-32s %-16.2f %-16s\n", "Argument Drift Score", analysis.ArgumentDrift.OverallDriftScore, "")
+	if analysis.CostProfile != nil {
+		fmt.Fprintf(w, "%-32s %-16.1f %-16s\n", "Mean Tokens per Run", analysis.CostProfile.MeanTokens, fmt.Sprintf("p95: %.0f", analysis.CostProfile.P95Tokens))
+		costEval := "Uniform"
+		if analysis.CostProfile.CostJitterRatio > 2.0 {
+			costEval = "Runaway Risk"
+		}
+		fmt.Fprintf(w, "%-32s %-16s %-16s\n", "Cost Jitter Ratio", fmt.Sprintf("%.2fx", analysis.CostProfile.CostJitterRatio), costEval)
+	}
 	fmt.Fprintf(w, "%-32s %-16s %-16s\n", "Run Success Rate", fmt.Sprintf("%.1f%%", analysis.SuccessRate*100.0), "")
 	fmt.Fprintf(w, "%-32s %-16d %-16s\n", "Unique Execution Paths", analysis.DistanceProfile.UniquePathCount, "")
 	fmt.Fprintf(w, "%-32s %-16d %-16s\n", "Total Sampled Iterations", analysis.TotalRuns, "")

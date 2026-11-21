@@ -1,0 +1,20 @@
+# flakeprobe configuration file
+version: "1"
+
+target:
+  type: mock
+  mock_archetype: bifurcated
+  prompt: "Analyze Q3 revenue report and query customer database for churn risks"
+
+suite:
+  runs: 15
+  concurrency: 4
+  max_fri: 0.20
+  jitter_ms: 20
+
+sweep:
+  temperatures: [0.0, 0.2, 0.5, 0.7]
+
+reports:
+  out: "./reports/sweep_report.json"
+  junit: "./reports/sweep_junit.xml"

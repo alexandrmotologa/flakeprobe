@@ -3,6 +3,7 @@ package entropy
 import (
 	"math"
 
+	"github.com/alexandrmotologa/flakeprobe/pkg/cost"
 	"github.com/alexandrmotologa/flakeprobe/pkg/runner"
 )
 
@@ -37,6 +38,7 @@ type FlakinessAnalysis struct {
 	ArgumentDrift       ArgumentDriftProfile       `json:"argument_drift"`
 	StateDAG            *StateDAG                  `json:"state_dag"`
 	PrimaryBifurcation  *BifurcationPoint          `json:"primary_bifurcation,omitempty"`
+	CostProfile         *cost.CostProfile          `json:"cost_profile,omitempty"`
 	Recommendations     []string                   `json:"recommendations"`
 }
 
@@ -126,6 +128,11 @@ func AnalyzeFlakiness(runs []runner.Run, threshold float64, weights *FlakinessWe
 	isUnstable := fri >= threshold
 	thresholdPassed := !isUnstable
 
+	costProfile := cost.ComputeCostProfile(runs, "default", nil)
+	if costProfile.CostJitterRatio > 2.0 {
+		recommendations = append(recommendations, "High token cost variance detected across trajectories. Some runs consume excessive iterations.")
+	}
+
 	return &FlakinessAnalysis{
 		FRI:                fri,
 		FRIPercent:         fri * 100.0,
@@ -140,6 +147,7 @@ func AnalyzeFlakiness(runs []runner.Run, threshold float64, weights *FlakinessWe
 		ArgumentDrift:      *argDrift,
 		StateDAG:           dag,
 		PrimaryBifurcation: primaryBifurcation,
+		CostProfile:        costProfile,
 		Recommendations:    recommendations,
 	}
 }
