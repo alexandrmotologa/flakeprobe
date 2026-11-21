@@ -61,6 +61,16 @@ function renderAll() {
   if (analysis.state_dag) {
     renderDAG(analysis.state_dag, analysis.entropy_profile);
   }
+
+  if (window.location.hash === '#diff') {
+    switchTab('diff');
+  } else if (window.location.hash === '#mitigations') {
+    switchTab('mitigations');
+  } else if (window.location.hash === '#bifurcations') {
+    switchTab('bifurcations');
+  } else if (window.location.hash === '#runs') {
+    switchTab('runs');
+  }
 }
 
 function populateDiffSelectors(runs) {

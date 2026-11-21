@@ -1,6 +1,26 @@
-# flakeprobe
+<p align="center">
+  <img src="docs/images/logo.png?raw=true" alt="flakeprobe Logo" width="130" style="border-radius: 24px;" />
+</p>
 
-AI Agent Flakiness, Path Entropy, and Non-Deterministic Regression Benchmarker in Go.
+<h1 align="center">flakeprobe</h1>
+
+<p align="center">
+  <strong>Autonomous AI Agent Flakiness, Path Entropy, and Non-Deterministic Regression Benchmarker in Go</strong>
+</p>
+
+<p align="center">
+  <a href="#key-capabilities">Features</a> &bull;
+  <a href="#quick-start">Quick Start</a> &bull;
+  <a href="#mathematical-formulation">Math Formulation</a> &bull;
+  <a href="#cli-reference">CLI Reference</a> &bull;
+  <a href="#documentation">Docs</a>
+</p>
+
+<p align="center">
+  <img src="docs/images/flakeprobe_demo.gif?raw=true" alt="flakeprobe Live Cockpit Interactive Trajectory Demonstration" width="100%" style="border-radius: 8px; border: 1px solid #30363d;" />
+</p>
+
+---
 
 `flakeprobe` runs N parallel executions against AI agent endpoints, constructs the state transition Directed Acyclic Graph (DAG), calculates Shannon decision entropy, and evaluates the composite Flakiness Risk Index (FRI). It flags decision bifurcations in CI/CD pipelines, synthesizes deterministic replay fixtures (`.flakerec.json`), and provides an embedded real-time web cockpit on port 8484.
 
@@ -161,6 +181,26 @@ flakeprobe cockpit --report ./reports/bifurcated.json --port 8484
 ```
 
 Then open `http://127.0.0.1:8484` in your browser. Users can compare runs, view prompt patches, and launch new benchmarks directly from the web interface.
+
+<p align="center">
+  <img src="docs/images/cockpit_dashboard.png?raw=true" alt="flakeprobe Cockpit State Transition DAG & Heatmap" width="100%" style="border-radius: 8px; border: 1px solid #30363d;" />
+</p>
+
+### 9. Side-by-Side Trajectory Diffing
+
+Pinpoint the precise step where two execution runs diverge, displaying tool substitutions and argument diffs:
+
+<p align="center">
+  <img src="docs/images/trajectory_diff.png?raw=true" alt="flakeprobe Side-by-Side Trajectory Diff View" width="100%" style="border-radius: 8px; border: 1px solid #30363d;" />
+</p>
+
+### 10. Responsive Layout Across Devices
+
+The cockpit adapts dynamically from desktop workstations to mobile viewports:
+
+<p align="center">
+  <img src="docs/images/cockpit_mobile.png?raw=true" alt="flakeprobe Responsive Mobile Viewport" width="360" style="border-radius: 8px; border: 1px solid #30363d;" />
+</p>
 
 ---
 
