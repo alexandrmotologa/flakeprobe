@@ -5,7 +5,7 @@ bin/
 *.dll
 *.so
 *.dylib
-flakeprobe
+/flakeprobe
 
 # Test artifacts and coverage
 *.out
