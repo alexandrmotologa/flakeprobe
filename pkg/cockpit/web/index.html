@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>flakeprobe: Agent Reliability & Trajectory Cockpit</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-title">
+        <span>flakeprobe</span>
+        <span class="brand-badge">COCKPIT :8484</span>
+      </div>
+    </div>
+    <div class="header-status">
+      <span id="target-desc" style="color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px;"></span>
+      <div id="status-badge" class="status-badge status-pass">INITIALIZING</div>
+    </div>
+  </header>
+
+  <main>
+    <section class="viewport-panel">
+      <div class="metrics-strip">
+        <div class="metric-card">
+          <div class="metric-label">Flakiness Index (FRI)</div>
+          <div id="metric-fri" class="metric-val">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Max Node Entropy H(s)</div>
+          <div id="metric-entropy" class="metric-val">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Mean Distance (D)</div>
+          <div id="metric-distance" class="metric-val">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Success Rate</div>
+          <div id="metric-success" class="metric-val">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Total Runs</div>
+          <div id="metric-runs" class="metric-val">-</div>
+        </div>
+      </div>
+
+      <div class="graph-container">
+        <svg id="dag-svg"></svg>
+      </div>
+    </section>
+
+    <aside class="sidebar-panel">
+      <div class="sidebar-tabs">
+        <button class="tab-btn active" onclick="switchTab('inspector')">Node Inspector</button>
+        <button class="tab-btn" onclick="switchTab('bifurcations')">Bifurcations</button>
+        <button class="tab-btn" onclick="switchTab('runs')">Runs</button>
+      </div>
+
+      <div id="tab-inspector" class="sidebar-content">
+        <div class="section-title">Selected State Node</div>
+        <div id="node-details" class="node-inspector-drawer">
+          <p style="color: var(--text-muted);">Click any node in the DAG to inspect transition probabilities, duration, and parameter signatures.</p>
+        </div>
+      </div>
+
+      <div id="tab-bifurcations" class="sidebar-content" style="display: none;">
+        <div class="section-title">Branching Hotspots</div>
+        <div id="bifurcation-list">
+          <p style="color: var(--text-muted);">No bifurcations loaded yet.</p>
+        </div>
+      </div>
+
+      <div id="tab-runs" class="sidebar-content" style="display: none;">
+        <div class="section-title">Trajectory Runs</div>
+        <div id="runs-list">
+          <p style="color: var(--text-muted);">No runs loaded yet.</p>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

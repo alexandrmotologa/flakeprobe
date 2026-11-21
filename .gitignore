@@ -1,0 +1,25 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+flakeprobe
+
+# Test artifacts and coverage
+*.out
+*.test
+coverage.txt
+reports/
+fixtures/*.flakerec.json
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db

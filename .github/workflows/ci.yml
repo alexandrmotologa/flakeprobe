@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+
+      - name: Verify Dependencies
+        run: go mod tidy && git diff --exit-code go.mod
+
+      - name: Run Unit & Integration Tests
+        run: go test -v -race ./...
+
+      - name: Build Binary
+        run: go build -v -o bin/flakeprobe ./cmd/flakeprobe
+
+      - name: Run Synthetic Agent Test (Deterministic Gate)
+        run: |
+          ./bin/flakeprobe test \
+            --mock-archetype deterministic \
+            --runs 10 \
+            --concurrency 2 \
+            --max-fri 0.05 \
+            --out ./reports/deterministic.json \
+            --junit ./reports/junit.xml
+
+      - name: Test Record and Replay
+        run: |
+          ./bin/flakeprobe record \
+            --mock-archetype deterministic \
+            --output ./fixtures/test_fixture.flakerec.json \
+            --runs 5
